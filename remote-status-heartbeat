@@ -1,0 +1,59 @@
+#!/bin/bash
+set -u
+
+CONFIG="/etc/remote-status/heartbeat.conf"
+
+if [[ ! -r "$CONFIG" ]]; then
+    echo "Cannot read $CONFIG" >&2
+    exit 1
+fi
+
+source "$CONFIG"
+
+declare -A STATUS
+
+for service in "${!CHECKS[@]}"; do
+    if bash -c "${CHECKS[$service]}"; then
+        STATUS["$service"]="ok"
+    else
+        STATUS["$service"]="fail"
+    fi
+done
+
+TIMESTAMP="$(date --iso-8601=seconds)"
+
+POST_ARGS=(
+    --data-urlencode "host=${REMOTE_STATUS_HOST}"
+    --data-urlencode "key=${REMOTE_STATUS_KEY}"
+    --data-urlencode "timestamp=${TIMESTAMP}"
+)
+
+for service in "${!CHECKS[@]}"; do
+    POST_ARGS+=(
+        --data-urlencode "${service}=${STATUS[$service]}"
+    )
+done
+
+HTTP_CODE="$(
+    curl \
+        --silent \
+        --show-error \
+        --output /dev/null \
+        --write-out '%{http_code}' \
+        --max-time 15 \
+        --retry 2 \
+        --retry-delay 2 \
+        "${POST_ARGS[@]}" \
+        "${REMOTE_STATUS_URL}"
+)"
+
+if [[ "$HTTP_CODE" == "200" ]]; then
+    printf '%s\n' "Heartbeat accepted:"
+    for service in "${!CHECKS[@]}"; do
+        printf '  %-12s %s\n' "$service" "${STATUS[$service]}"
+    done
+    exit 0
+fi
+
+echo "Heartbeat failed: HTTP $HTTP_CODE" >&2
+exit 1
