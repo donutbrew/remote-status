@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 INSTALL_DIR="/usr/local/sbin"
 CONFIG_DIR="/etc/remote-status"
 CONFIG_FILE="${CONFIG_DIR}/heartbeat.conf"
@@ -9,6 +11,7 @@ SERVICE_FILE="/etc/systemd/system/remote-status.service"
 TIMER_FILE="/etc/systemd/system/remote-status.timer"
 
 SCRIPT_NAME="remote-status-heartbeat"
+SCRIPT_SOURCE="${SCRIPT_DIR}/${SCRIPT_NAME}"
 SCRIPT_PATH="${INSTALL_DIR}/${SCRIPT_NAME}"
 
 echo "Installing remote-status..."
@@ -45,13 +48,13 @@ install -d -m 750 "$CONFIG_DIR"
 # Install heartbeat script
 # ----------------------------------------------------------------------
 
-if [[ ! -f "$SCRIPT_NAME" ]]; then
-    echo "ERROR: $SCRIPT_NAME not found in repository." >&2
+if [[ ! -f "$SCRIPT_SOURCE" ]]; then
+    echo "ERROR: $SCRIPT_SOURCE not found." >&2
     exit 1
 fi
 
 install -o root -g root -m 755 \
-    "$SCRIPT_NAME" \
+    "$SCRIPT_SOURCE" \
     "$SCRIPT_PATH"
 
 echo "Installed $SCRIPT_PATH"

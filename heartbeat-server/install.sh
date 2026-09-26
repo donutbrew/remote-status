@@ -1,9 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 WEB_ROOT="/var/www/html/status"
 DATA_DIR="/var/lib/remote-status"
 SCRIPT="heartbeat.php"
+SCRIPT_SOURCE="${SCRIPT_DIR}/${SCRIPT}"
 
 echo "Installing remote-status server..."
 
@@ -13,8 +16,8 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 1
 fi
 
-if [[ ! -f "$SCRIPT" ]]; then
-    echo "ERROR: $SCRIPT not found." >&2
+if [[ ! -f "$SCRIPT_SOURCE" ]]; then
+    echo "ERROR: $SCRIPT_SOURCE not found." >&2
     exit 1
 fi
 
@@ -39,7 +42,7 @@ install -d -o www-data -g www-data -m 750 "$DATA_DIR"
 # ----------------------------------------------------------------------
 
 install -o root -g root -m 644 \
-    "$SCRIPT" \
+    "$SCRIPT_SOURCE" \
     "$WEB_ROOT/$SCRIPT"
 
 echo "Installed $WEB_ROOT/$SCRIPT"
@@ -78,4 +81,4 @@ echo "Log:"
 echo "  $DATA_DIR/heartbeat.log"
 echo
 echo "Next step:"
-echo "  Configure host keys in heartbeat.php"
+echo "  Configure host keys in $WEB_ROOT/$SCRIPT"
